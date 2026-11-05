@@ -10,7 +10,9 @@ whitebox.config.json 加载器（被 build_run.py / wb.py / coverage_report.py �
     "include_dirs": ["path/to/bsp"],                 // 附加头文件目录(可选)
     "source_tag":   "my-project",                    // gcov Source 过滤标记(可选, 默认取 source_root 末段)
     "gcc":          "C:/msys64/ucrt64/bin/gcc.exe",  // 可选, 默认 PATH 查找 gcc
-    "gcov":         "C:/msys64/ucrt64/bin/gcov.exe"  // 可选, 默认 PATH 查找 gcov
+    "gcov":         "C:/msys64/ucrt64/bin/gcov.exe", // 可选, 默认 PATH 查找 gcov
+    "min_line":     85,                              // 可选: 行覆盖率门禁%, 默认 85
+    "min_branch":   80                               // 可选: 分支覆盖率门禁%, 默认 80
   }
 查找顺序: --config 显式指定 > 环境变量 WHITEBOX_CONFIG > 从 CWD 逐级向上找 whitebox.config.json。
 """
@@ -34,6 +36,8 @@ class WbConfig:
         self.source_tag = raw.get("source_tag", self.source_root.name)
         self.gcc = raw.get("gcc") or self._find_tool("gcc")
         self.gcov = raw.get("gcov") or self._find_tool("gcov")
+        self.min_line = float(raw.get("min_line", 85))
+        self.min_branch = float(raw.get("min_branch", 80))
 
     @staticmethod
     def _find_tool(name):

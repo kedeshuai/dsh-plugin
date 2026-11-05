@@ -19,18 +19,20 @@ DSH 技能插件：嵌入式 C 白盒测试标准化工作流。技能被 DSH �
 dsh plugin add <本仓库>          # 或 DSH 内 plugin_manager 安装
 ```
 
-要求 Node.js >= 22.19。安装后 DSH 自动发现 `skills/whitebox-testing`。
+要求 Node.js >= 22.19。安装后 DSH 自动发现 `skills/whitebox-testing`；web 端提供两个 UI 入口：左栏底部（Settings 旁）"白盒测试配置"按钮打开配置面板，Plugins 页本插件卡片内嵌同一表单。
 
 ## 使用
 
-1. 在被测工程根目录放 `whitebox.config.json`（键说明见 `scripts/wbconfig.py` 头注释）：
+1. 在被测工程根目录放 `whitebox.config.json`（可直接用上述配置面板填写生成；键说明见 `scripts/wbconfig.py` 头注释）：
 
 ```json
 {
   "test_root": "whitebox-test",
   "source_root": "path/to/source",
   "include_dirs": ["path/to/bsp"],
-  "gcc": "C:/msys64/ucrt64/bin/gcc.exe"
+  "gcc": "C:/msys64/ucrt64/bin/gcc.exe",
+  "min_line": 85,
+  "min_branch": 80
 }
 ```
 
@@ -46,10 +48,11 @@ dsh plugin add <本仓库>          # 或 DSH 内 plugin_manager 安装
 
 - [x] `package.json` 声明 `dsh.bundle`（含 `patch: ./cordis.patch.yml`）——已具备
 - [x] 仓库根有 `cordis.patch.yml`（`- insert: id/name`）——已具备
-- [ ] 建独立 GitHub 仓库、添加 `dsh-plugin` topic、**仓库创建满 1 天**
-- [ ] 填写 `package.json` 的 `repository` 字段指向该仓库
+- [x] 建独立 GitHub 仓库（https://github.com/kedeshuai/dsh-plugin）、添加 `dsh-plugin` topic
+- [x] 填写 `package.json` 的 `repository` 字段指向该仓库
+- [x] 提 PR：[awesome-dsh-plugin#12253](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/12253)（`data/plugins/kedeshuai__dsh-plugin.yml`）
+- [ ] 等待仓库满 1 天后 CI 通过、评审合并；held: author 时推同一分支更新
 - [ ] 可选：`screenshots.json` 截图、发布 npm（免构建授权）
-- [ ] 提 PR（单 PR ≤3 条目；描述不带营销词、与代码一致）
 
 ## License
 

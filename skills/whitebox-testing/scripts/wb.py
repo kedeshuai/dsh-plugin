@@ -6,7 +6,7 @@ whitebox-testing 标准化入口（配套 SKILL.md, 配置驱动版）
 子命令:
   new  <相对source_root的Module.c> [中文模块名]   生成 tests/test_<mod>.c + stubs/stub_<mod>.c 骨架并注册
   run  [test ...]                                跑指定/全部测试套件, 汇总 checks 结果
-  gate [--min-line 85 --min-branch 80]           全量回归 + 主测工程覆盖率门禁（CI 用, 不达标非零退出）
+  gate [--min-line X --min-branch Y]        全量回归 + 主测工程覆盖率门禁（CI 用, 不达标非零退出; 门禁线可写在 whitebox.config.json 的 min_line/min_branch）
   cases                                          列出全部 TEST() 用例清单
   vg <file.c ...>                                环复杂度 V(G) 表
 
@@ -167,6 +167,8 @@ def cmd_run(args):
 
 def cmd_gate(args):
     reg = load_suites()
+    min_line = args.min_line if args.min_line is not None else cfg.min_line
+    min_branch = args.min_branch if args.min_branch is not None else cfg.min_branch
     rows = []
     failed = []
     tot_lh = tot_lt = tot_bh = tot_bt = 0
@@ -182,7 +184,7 @@ def cmd_gate(args):
             lh, lt, bh, bt = parse_gcov(gcov)
             lp = 100.0 * lh / lt if lt else 0.0
             bp = 100.0 * bh / bt if bt else 0.0
-            ok = lp >= args.min_line and bp >= args.min_branch
+            ok = lp >= min_line and bp >= min_branch
             rows.append((t, info["primary"], checks, f"{lh}/{lt} {lp:.1f}%", f"{bh}/{bt} {bp:.1f}%",
                          "PASS" if ok else "GATE-FAIL"))
             if not ok:
@@ -197,7 +199,7 @@ def cmd_gate(args):
     lp = 100.0 * tot_lh / tot_lt if tot_lt else 0.0
     bp = 100.0 * tot_bh / tot_bt if tot_bt else 0.0
     print(f"\n总计: 行 {tot_lh}/{tot_lt} ({lp:.1f}%), 分支 {tot_bh}/{tot_bt} ({bp:.1f}%), "
-          f"门禁线 行{args.min_line}%/分支{args.min_branch}%")
+          f"门禁线 行{min_line}%/分支{min_branch}%")
     if failed:
         print("[GATE-FAIL] " + ", ".join(failed))
         sys.exit(1)
@@ -233,8 +235,8 @@ def main():
     p = sub.add_parser("run", help="跑测试套件")
     p.add_argument("tests", nargs="*", help="测试名(缺省=全部)")
     p = sub.add_parser("gate", help="全量回归+覆盖率门禁")
-    p.add_argument("--min-line", type=float, default=85.0)
-    p.add_argument("--min-branch", type=float, default=80.0)
+    p.add_argument("--min-line", type=float, default=None, help="行覆盖门禁%%(缺省取 whitebox.config.json min_line, 默认 85)")
+    p.add_argument("--min-branch", type=float, default=None, help="分支覆盖门禁%%(缺省取 whitebox.config.json min_branch, 默认 80)")
     sub.add_parser("cases", help="列用例清单")
     p = sub.add_parser("vg", help="环复杂度表")
     p.add_argument("files", nargs="+", help=".c 文件")
