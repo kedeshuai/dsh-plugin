@@ -4,9 +4,9 @@
 白盒单元测试 构建+执行+覆盖率（宿主机 GCC + gcov, 配置驱动版）
 
 用法:
-  python build_run.py --test test_task_scheduler --modules task/task_scheduler.c
+  python build_run.py --test test_my_module --modules path/to/my_module.c
   python build_run.py --test test_common --modules Common/Common.c
-  python build_run.py --test test_defrost                       # 测试内 #include 被测 .c 时 --modules 留空
+  python build_run.py --test test_my_module                      # 测试内 #include 被测 .c 时 --modules 留空
 
 说明:
   路径来自 whitebox.config.json（见 wbconfig.py 头注释）:
