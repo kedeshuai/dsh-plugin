@@ -310,25 +310,49 @@ window.__ModuleLoader__.load({
     }
 
     function apply (ctx) {
-      // Sidebar foot cell beside Settings (official example shape from the
-      // slot catalog: inject returns the register result).
-      ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
-        name: 'sidebar.footer.action',
-        id: 'whitebox-testing',
-        order: 120,
-        label: TEXT.title,
-      }, WhiteboxEntry))
-      // Same form also lands on the Plugins page config tab (key = package
-      // name, dsh 0.1.7+), mirroring the @liustack/modlens registration.
-      ctx.slots.inject('plugins.bundle.config', function * () {
-        yield ctx.slots.register({
-          name: 'plugins.bundle.config',
-          key: 'dsh-plugin-whitebox-testing',
-        }, ConfigPanel)
-      })
+      // Reaching for an undeclared service throws in cordis ("service not
+      // available"), and a throwing entry takes the WHOLE web boot down
+      // ("web boot: 1 entry did not activate"). So: register through a
+      // scoped ctx.inject(['slots']) like @liustack/modlens does, and never
+      // let anything inside apply escape to the activator.
+      if (typeof ctx.inject !== 'function') return
+      try {
+        ctx.inject(['slots'], (scope) => {
+          var slots = scope && scope.slots
+          if (!slots || typeof slots.inject !== 'function' || typeof slots.register !== 'function') return
+          try {
+            // Sidebar foot cell beside Settings (official example shape
+            // from the slot catalog: inject returns the register result).
+            slots.inject('sidebar.footer.action', () => slots.register({
+              name: 'sidebar.footer.action',
+              id: 'whitebox-testing',
+              order: 120,
+              label: TEXT.title,
+            }, WhiteboxEntry))
+            // Same form also lands on the Plugins page config tab (key =
+            // package name, dsh 0.1.7+), mirroring the modlens registration.
+            slots.inject('plugins.bundle.config', function * () {
+              yield slots.register({
+                name: 'plugins.bundle.config',
+                key: 'dsh-plugin-whitebox-testing',
+              }, ConfigPanel)
+            })
+          } catch (error) {
+            console.error('[whitebox-testing] slot registration skipped: ' + error)
+          }
+        })
+      } catch (error) {
+        console.error('[whitebox-testing] apply skipped: ' + error)
+      }
     }
 
-    exports.apply = apply
+    exports.apply = function (ctx) {
+      try {
+        apply(ctx)
+      } catch (error) {
+        console.error('[whitebox-testing] apply crashed: ' + error)
+      }
+    }
     exports.inject = []
     return module.exports
   },
