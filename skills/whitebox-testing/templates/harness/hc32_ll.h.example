@@ -1,0 +1,71 @@
+/**
+ * @file  hc32_ll.h (宿主机测试桩)
+ * @brief 替换 HDSC HC32F175 设备驱动库头文件, 仅供白盒单元测试在 PC 上编译业务代码使用。
+ *        只声明被测业务层真正用到的类型/宏/函数, 实现见 stubs_hw.c。
+ */
+#ifndef __HC32_LL_STUB_H__
+#define __HC32_LL_STUB_H__
+
+#include <stdint.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* ---- DDL 基础类型 ---- */
+typedef int32_t  int32_t_result;      /* 保留位, 避免与 stdint 冲突 */
+#define LL_OK    (0)
+#define LL_ERR   (-1)
+#define LL_ERR_TIMEOUT (-2)
+
+typedef enum { RESET = 0, SET = 1 } en_flag_status_t;
+typedef enum { DISABLE = 0, ENABLE = 1 } en_functional_state_t;
+
+/* ---- GPIO ---- */
+typedef enum {
+    GPIO_PORT_0 = 0, GPIO_PORT_1, GPIO_PORT_2, GPIO_PORT_3,
+    GPIO_PORT_4, GPIO_PORT_5, GPIO_PORT_6, GPIO_PORT_7,
+    GPIO_PORT_MAX
+} en_gpio_port_t;
+
+typedef enum {
+    GPIO_PIN_00 = 0, GPIO_PIN_01, GPIO_PIN_02, GPIO_PIN_03,
+    GPIO_PIN_04, GPIO_PIN_05, GPIO_PIN_06, GPIO_PIN_07,
+    GPIO_PIN_08, GPIO_PIN_09, GPIO_PIN_10, GPIO_PIN_11,
+    GPIO_PIN_12, GPIO_PIN_13, GPIO_PIN_14, GPIO_PIN_15,
+    GPIO_PIN_MAX
+} en_gpio_pin_t;
+
+void GPIO_SetPins(en_gpio_port_t enPort, en_gpio_pin_t enPin);
+void GPIO_ResetPins(en_gpio_port_t enPort, en_gpio_pin_t enPin);
+void GPIO_TogglePins(en_gpio_port_t enPort, en_gpio_pin_t enPin);
+en_flag_status_t GPIO_ReadOutputPins(en_gpio_port_t enPort, en_gpio_pin_t enPin);
+en_flag_status_t GPIO_ReadInputPins(en_gpio_port_t enPort, en_gpio_pin_t enPin);
+
+/* ---- USART (只保留业务层用到的收发控制) ---- */
+typedef struct {
+    uint32_t u32Instance;   /* 桩内区分实例号 */
+} CM_USART_TypeDef;
+
+extern CM_USART_TypeDef g_stcUsart0, g_stcUsart2, g_stcUsart3, g_stcUsart4;
+#define CM_USART0   (&g_stcUsart0)
+#define CM_USART2   (&g_stcUsart2)
+#define CM_USART3   (&g_stcUsart3)
+#define CM_USART4   (&g_stcUsart4)
+
+#define USART_RX    (0x01u)
+#define USART_TX    (0x02u)
+void USART_FuncCmd(CM_USART_TypeDef *USARTx, uint32_t u32Func, en_functional_state_t enNewState);
+
+/* ---- 看门狗 / 中断 / NOP ---- */
+void IWDT_FeedDog(void);
+static inline void __disable_irq(void) { /* 测试桩: 空 */ }
+static inline void __enable_irq(void)  { /* 测试桩: 空 */ }
+static inline void __NOP(void)         { /* 测试桩: 空 */ }
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __HC32_LL_STUB_H__ */

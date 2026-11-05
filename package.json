@@ -1,0 +1,40 @@
+{
+  "name": "dsh-plugin-whitebox-testing",
+  "version": "0.1.0",
+  "description": "DSH skill for embedded C white-box testing: host-side stub harness workflow, gcov coverage gating (wb.py), and a control-logic study handbook template. Plus wb.py test driver with new/run/gate/cases subcommands.",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "skills",
+    "docs",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "skill",
+    "whitebox",
+    "testing",
+    "embedded",
+    "gcov",
+    "coverage"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kedeshuai/dsh-plugin.git"
+  },
+  "homepage": "https://github.com/kedeshuai/dsh-plugin",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

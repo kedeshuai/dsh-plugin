@@ -1,0 +1,3 @@
+- insert:
+    - id: whitebox-testing
+      name: dsh-plugin-whitebox-testing

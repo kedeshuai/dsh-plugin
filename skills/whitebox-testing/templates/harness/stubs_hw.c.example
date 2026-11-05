@@ -1,0 +1,143 @@
+/**
+ * @file  stubs_hw.c
+ * @brief 硬件层桩实现: 记录所有外设操作到 hwlog, 可编程 ADC/Flash 返回值。
+ */
+#include <string.h>
+#include "hc32_ll.h"
+#include "bsp_uart.h"
+#include "bsp_ad.h"
+#include "bsp_dataflash.h"
+#include "hwlog.h"
+
+/* ---- hwlog 状态 ---- */
+static hw_ev_t  s_events[HWLOG_CAP];
+static uint32_t s_ev_count = 0;
+
+uint16_t g_u16AdcValue = 0u;
+uint8_t  g_u8AdcResult = LL_OK;
+int32_t  g_i32FlashWriteRc = 0;
+int32_t  g_i32FlashReadRc = 0;
+
+void hwlog_reset(void) { s_ev_count = 0u; memset(s_events, 0, sizeof(s_events)); }
+uint32_t hwlog_count(void) { return s_ev_count; }
+
+const hw_ev_t *hwlog_at(uint32_t idx)
+{
+    return (idx < s_ev_count) ? &s_events[idx] : NULL;
+}
+
+uint32_t hwlog_count_kind(hw_ev_kind_t kind)
+{
+    uint32_t i, n = 0u;
+    for (i = 0u; i < s_ev_count; i++) { if (s_events[i].kind == kind) n++; }
+    return n;
+}
+
+static void hwlog_push(hw_ev_kind_t kind, uint32_t a1, uint32_t a2, uint32_t a3,
+                       const void *data, uint32_t dlen)
+{
+    if (s_ev_count < HWLOG_CAP) {
+        hw_ev_t *e = &s_events[s_ev_count++];
+        e->kind = kind; e->arg1 = a1; e->arg2 = a2; e->arg3 = a3;
+        if (data != NULL && dlen > 0u) {
+            if (dlen > sizeof(e->data)) dlen = (uint32_t)sizeof(e->data);
+            memcpy(e->data, data, dlen);
+        }
+        e->data_len = dlen;
+    }
+}
+
+/* ---- USART 实例对象 ---- */
+CM_USART_TypeDef g_stcUsart0 = { 0u };
+CM_USART_TypeDef g_stcUsart2 = { 2u };
+CM_USART_TypeDef g_stcUsart3 = { 3u };
+CM_USART_TypeDef g_stcUsart4 = { 4u };
+
+/* ---- GPIO ---- */
+static uint32_t s_u32OutState[GPIO_PORT_MAX];   /* 输出锁存, bit n = pin n */
+
+void GPIO_SetPins(en_gpio_port_t enPort, en_gpio_pin_t enPin)
+{
+    s_u32OutState[enPort] |= (1u << (uint32_t)enPin);
+    hwlog_push(HW_EV_GPIO_SET, (uint32_t)enPort, (uint32_t)enPin, 0u, NULL, 0u);
+}
+
+void GPIO_ResetPins(en_gpio_port_t enPort, en_gpio_pin_t enPin)
+{
+    s_u32OutState[enPort] &= ~(1u << (uint32_t)enPin);
+    hwlog_push(HW_EV_GPIO_RESET, (uint32_t)enPort, (uint32_t)enPin, 0u, NULL, 0u);
+}
+
+void GPIO_TogglePins(en_gpio_port_t enPort, en_gpio_pin_t enPin)
+{
+    s_u32OutState[enPort] ^= (1u << (uint32_t)enPin);
+    hwlog_push(HW_EV_GPIO_TOGGLE, (uint32_t)enPort, (uint32_t)enPin, 0u, NULL, 0u);
+}
+
+en_flag_status_t GPIO_ReadOutputPins(en_gpio_port_t enPort, en_gpio_pin_t enPin)
+{
+    return ((s_u32OutState[enPort] >> (uint32_t)enPin) & 1u) ? SET : RESET;
+}
+
+en_flag_status_t GPIO_ReadInputPins(en_gpio_port_t enPort, en_gpio_pin_t enPin)
+{
+    (void)enPort; (void)enPin;
+    return RESET;
+}
+
+/* ---- USART ---- */
+void USART_FuncCmd(CM_USART_TypeDef *USARTx, uint32_t u32Func, en_functional_state_t enNewState)
+{
+    hwlog_push(HW_EV_USART_FUNC,
+               (USARTx != NULL) ? USARTx->u32Instance : 0xFFFFFFFFu,
+               u32Func, (uint32_t)enNewState, NULL, 0u);
+}
+
+/* ---- 看门狗 ---- */
+void IWDT_FeedDog(void)
+{
+    hwlog_push(HW_EV_IWDT_FEED, 0u, 0u, 0u, NULL, 0u);
+}
+
+/* ---- BSP: UART ---- */
+volatile uint16_t u16UartTxAbortCnt[UART_SLOT_NUM] = { 0u };
+
+void bsp_UartInit(void) { }
+
+void bsp_UartSend(CM_USART_TypeDef *USARTx, uint8_t *pu8Buf, uint8_t u8Len)
+{
+    hwlog_push(HW_EV_UART_SEND,
+               (USARTx != NULL) ? USARTx->u32Instance : 0xFFFFFFFFu,
+               u8Len, 0u, pu8Buf, u8Len);
+}
+
+void bsp_UartTxTick(void) { }
+
+/* ---- BSP: ADC ---- */
+void bsp_AdInit(void) { }
+void bsp_AdTest(void) { }
+
+uint8_t ADC_ReadChannel_ADCx(uint8_t channel, uint16_t *result)
+{
+    hwlog_push(HW_EV_ADC_READ, channel, 0u, 0u, NULL, 0u);
+    if (result != NULL) { *result = g_u16AdcValue; }
+    return g_u8AdcResult;
+}
+
+/* ---- BSP: DataFlash ---- */
+void bsp_dataflash_Init(void) { }
+void bsp_dataflash_test(void) { }
+
+int32_t bsp_Dataflash_WriteData(uint32_t u32Addr, void *pu8Buff, uint32_t u32len)
+{
+    (void)pu8Buff;
+    hwlog_push(HW_EV_FLASH_WRITE, u32Addr, u32len, 0u, NULL, 0u);
+    return g_i32FlashWriteRc;
+}
+
+int32_t bsp_Dataflash_ReadData(uint32_t u32Addr, void *pu8Buff, uint32_t u32len)
+{
+    hwlog_push(HW_EV_FLASH_READ, u32Addr, u32len, 0u, NULL, 0u);
+    if (pu8Buff != NULL && u32len > 0u) { memset(pu8Buff, 0, u32len); }
+    return g_i32FlashReadRc;
+}
